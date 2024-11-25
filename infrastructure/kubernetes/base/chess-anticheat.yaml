@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chess-anticheat
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chess-anticheat
+  template:
+    metadata:
+      labels:
+        app: chess-anticheat
+    spec:
+      containers:
+      - name: move-analysis
+        image: chess-anticheat/move-analysis:latest
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        env:
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: host
+        - name: MODEL_PATH
+          value: "/models/chess-anticheat-v1"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+        ports:
+        - containerPort: 8000
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+      - name: behavioral-analysis
+        image: chess-anticheat/behavioral:latest
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        ports:
+        - containerPort: 8001
+
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-storage-pvc

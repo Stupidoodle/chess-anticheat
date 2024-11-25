@@ -1,0 +1,30 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "Chess Anti-Cheat Analysis",
+        "panels": [
+            {
+                "title": "Analysis Duration",
+                "type": "graph",
+                "datasource": "Prometheus",
+                "targets": [
+                    {
+                        "expr": "rate(chess_analysis_duration_seconds_sum[5m]) / rate(chess_analysis_duration_seconds_count[5m])",
+                        "legendFormat": "{{analysis_type}}",
+                    }
+                ],
+            },
+            {
+                "title": "Suspicious Moves Detection",
+                "type": "graph",
+                "datasource": "Prometheus",
+                "targets": [
+                    {
+                        "expr": "rate(suspicious_moves_total[5m])",
+                        "legendFormat": "{{severity}}",
+                    }
+                ],
+            },
+        ],
+    }
+}

@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+chess
+redis
+prometheus-client
+structlog
+python-json-logger
+aiohttp
+asyncio
+pytest
+pytest-asyncio
+pytest-cov
+black
+isort
+mypy
+pytest-mock

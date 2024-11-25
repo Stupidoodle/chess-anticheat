@@ -1,0 +1,79 @@
+# Stage 1: Build Stockfish
+FROM debian:bullseye-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++ \
+    make \
+    git \
+    perl \
+    cmake \
+    libncurses-dev \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone Stockfish repository (using a specific version for stability)
+RUN git clone https://github.com/official-stockfish/Stockfish.git stockfish && \
+    cd stockfish && \
+    git checkout sf_17
+
+# Build Stockfish
+WORKDIR /stockfish/src
+RUN make -j$(nproc) build ARCH=x86-64-avx2 CXXFLAGS="-O3 -march=native \
+    -U_FORTIFY_SOURCE -std=c++17" COMP=gcc
+
+# Stage 2: Python Service
+FROM python:3.12-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libstdc++6 \
+    libncurses6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Stockfish binary from builder
+COPY --from=builder /stockfish/src/stockfish /usr/local/bin/stockfish
+
+# Create non-root user
+RUN useradd -m -u 1000 engine_user
+
+# Set up working directory
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.dev.txt .
+RUN pip install --no-cache-dir -r requirements.dev.txt
+
+# Copy service code
+COPY ./src /app/src
+COPY ./tests /app/tests
+
+# Create directory for engines and set permissions
+RUN mkdir -p /engines && \
+    chown -R engine_user:engine_user /engines && \
+    chmod 755 /engines
+
+# Environment variables
+ENV PYTHONPATH=/app \
+    STOCKFISH_PATH=/usr/local/bin/stockfish \
+    ENGINE_THREADS=2 \
+    MAX_HASH_SIZE=1024 \
+    DEFAULT_DEPTH=20 \
+    LOG_LEVEL=DEBUG
+
+# Switch to non-root user
+USER engine_user
+
+# Development entrypoint script
+COPY ./scripts/dev-entrypoint.sh /app/
+
+USER root
+RUN chmod +x /app/dev-entrypoint.sh
+USER engine_user
+
+# Expose port for API
+EXPOSE 8080
+
+# Start the service
+ENTRYPOINT ["/app/dev-entrypoint.sh"]

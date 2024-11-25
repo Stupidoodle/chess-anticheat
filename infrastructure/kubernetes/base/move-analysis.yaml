@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: move-analysis
+  namespace: chess-anticheat-dev
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: move-analysis
+  template:
+    metadata:
+      labels:
+        app: move-analysis
+    spec:
+      containers:
+      - name: move-analysis
+        image: chess-anticheat/move-analysis:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: database-config
+              key: host

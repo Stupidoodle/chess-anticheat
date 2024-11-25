@@ -1,0 +1,29 @@
+groups:
+- name: chess-anticheat
+  rules:
+  - alert: HighAnalysisLatency
+    expr: rate(chess_analysis_duration_seconds_sum[5m]) / rate(chess_analysis_duration_seconds_count[5m]) > 1.0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: High analysis latency detected
+      description: Analysis duration is above threshold for 5 minutes
+
+  - alert: HighErrorRate
+    expr: rate(analysis_errors_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: High error rate in analysis
+      description: Error rate is above 10% for 5 minutes
+
+  - alert: ModelPerformanceDegradation
+    expr: rate(model_inference_seconds_sum[5m]) / rate(model_inference_seconds_count[5m]) > 0.5
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: Model performance degradation detected
+      description: Model inference time is above threshold for 10 minutes
